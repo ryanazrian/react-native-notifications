@@ -28,6 +28,7 @@ import androidx.annotation.RequiresApi;
 
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_OPENED_EVENT_NAME;
 import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_EVENT_NAME;
+import static com.wix.reactnativenotifications.Defs.NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME;
 
 public class PushNotification implements IPushNotification {
 
@@ -51,12 +52,15 @@ public class PushNotification implements IPushNotification {
     public static IPushNotification get(Context context, Bundle bundle) {
         Context appContext = context.getApplicationContext();
         if (appContext instanceof INotificationsApplication) {
-            return ((INotificationsApplication) appContext).getPushNotification(context, bundle, AppLifecycleFacadeHolder.get(), new AppLaunchHelper());
+            return ((INotificationsApplication) appContext).getPushNotification(context, bundle,
+                    AppLifecycleFacadeHolder.get(), new AppLaunchHelper());
         }
-        return new PushNotification(context, bundle, AppLifecycleFacadeHolder.get(), new AppLaunchHelper(), new JsIOHelper());
+        return new PushNotification(context, bundle, AppLifecycleFacadeHolder.get(), new AppLaunchHelper(),
+                new JsIOHelper());
     }
 
-    protected PushNotification(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade, AppLaunchHelper appLaunchHelper, JsIOHelper JsIOHelper) {
+    protected PushNotification(Context context, Bundle bundle, AppLifecycleFacade appLifecycleFacade,
+            AppLaunchHelper appLaunchHelper, JsIOHelper JsIOHelper) {
         mContext = context;
         mAppLifecycleFacade = appLifecycleFacade;
         mAppLaunchHelper = appLaunchHelper;
@@ -68,8 +72,10 @@ public class PushNotification implements IPushNotification {
     public void onReceived() throws InvalidNotificationException {
         if (!mAppLifecycleFacade.isAppVisible()) {
             postNotification(null);
+            notifyReceivedBackgroundToJS();
+        } else {
+            notifyReceivedToJS();
         }
-        notifyReceivedToJS();
     }
 
     @Override
@@ -129,7 +135,8 @@ public class PushNotification implements IPushNotification {
     protected void dispatchUponVisibility() {
         mAppLifecycleFacade.addVisibilityListener(getIntermediateAppVisibilityListener());
 
-        // Make the app visible so that we'll dispatch the notification opening when visibility changes to 'true' (see
+        // Make the app visible so that we'll dispatch the notification opening when
+        // visibility changes to 'true' (see
         // above listener registration).
         launchOrResumeApp();
     }
@@ -144,7 +151,8 @@ public class PushNotification implements IPushNotification {
     }
 
     protected Notification buildNotification(PendingIntent intent) {
-        if(getNotificationBuilder(intent) == null) return null; //HERE
+        if (getNotificationBuilder(intent) == null)
+            return null; // HERE
         return getNotificationBuilder(intent).build();
     }
 
@@ -154,19 +162,16 @@ public class PushNotification implements IPushNotification {
         String CHANNEL_NAME = "Channel Name";
 
         final Notification.Builder notification = new Notification.Builder(mContext)
-                .setContentTitle(mNotificationProps.getTitle())
-                .setContentText(mNotificationProps.getBody())
-                .setContentIntent(intent)
-                .setDefaults(Notification.DEFAULT_ALL)
-                .setAutoCancel(true);
+                .setContentTitle(mNotificationProps.getTitle()).setContentText(mNotificationProps.getBody())
+                .setContentIntent(intent).setDefaults(Notification.DEFAULT_ALL).setAutoCancel(true);
 
         setUpIcon(notification);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    CHANNEL_NAME,
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_DEFAULT);
-            final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+            final NotificationManager notificationManager = (NotificationManager) mContext
+                    .getSystemService(Context.NOTIFICATION_SERVICE);
             notificationManager.createNotificationChannel(channel);
             notification.setChannelId(CHANNEL_ID);
         }
@@ -200,36 +205,38 @@ public class PushNotification implements IPushNotification {
     }
 
     protected void postNotification(int id, Notification notification) {
-        final NotificationManager notificationManager = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        final NotificationManager notificationManager = (NotificationManager) mContext
+                .getSystemService(Context.NOTIFICATION_SERVICE);
         Bundle data = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             data = notification.extras;
         }
         System.out.println(data);
-        if(data.getString("fireDate") != null) {
+        if (data.getString("fireDate") != null) {
             scheduleNotification(id, notification, Long.parseLong(data.getString("fireDate")));
         } else {
-            notificationManager.notify(id, notification); //here
+            notificationManager.notify(id, notification); // here
         }
     }
 
-    private void scheduleNotification (int id, Notification notification , long fireDate) { // tambah disini
+    private void scheduleNotification(int id, Notification notification, long fireDate) { // tambah disini
 
         long delay = fireDate - System.currentTimeMillis();
 
         System.out.println(delay);
 
-        notification.defaults=Notification.DEFAULT_SOUND|Notification.DEFAULT_VIBRATE;
+        notification.defaults = Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE;
 
-        Intent notificationIntent = new Intent(mContext, MyNotificationPublisher.class ) ;
-        notificationIntent.putExtra(MyNotificationPublisher.NOTIFICATION_ID , id);
-        notificationIntent.putExtra(MyNotificationPublisher.NOTIFICATION , notification) ;
+        Intent notificationIntent = new Intent(mContext, MyNotificationPublisher.class);
+        notificationIntent.putExtra(MyNotificationPublisher.NOTIFICATION_ID, id);
+        notificationIntent.putExtra(MyNotificationPublisher.NOTIFICATION, notification);
         final int ids = (int) System.currentTimeMillis(); // Check the id here
-        PendingIntent pendingIntent = PendingIntent.getBroadcast ( mContext, id , notificationIntent , PendingIntent.FLAG_UPDATE_CURRENT ) ;
-        long futureInMillis = SystemClock. elapsedRealtime () + delay ;
-        AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context. ALARM_SERVICE ) ;
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, id, notificationIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        long futureInMillis = SystemClock.elapsedRealtime() + delay;
+        AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
         assert alarmManager != null;
-        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP , futureInMillis , pendingIntent) ;
+        alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, futureInMillis, pendingIntent);
     }
 
     protected int createNotificationId(Notification notification) {
@@ -237,14 +244,21 @@ public class PushNotification implements IPushNotification {
     }
 
     private void notifyReceivedToJS() {
-        mJsIOHelper.sendEventToJS(NOTIFICATION_RECEIVED_EVENT_NAME, mNotificationProps.asBundle(), mAppLifecycleFacade.getRunningReactContext());
+        mJsIOHelper.sendEventToJS(NOTIFICATION_RECEIVED_EVENT_NAME, mNotificationProps.asBundle(),
+                mAppLifecycleFacade.getRunningReactContext());
+    }
+
+    private void notifyReceivedBackgroundToJS() {
+        mJsIOHelper.sendEventToJS(NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME, mNotificationProps.asBundle(),
+                mAppLifecycleFacade.getRunningReactContext());
     }
 
     private void notifyOpenedToJS() {
         Bundle response = new Bundle();
         response.putBundle("notification", mNotificationProps.asBundle());
 
-        mJsIOHelper.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, response, mAppLifecycleFacade.getRunningReactContext());
+        mJsIOHelper.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, response,
+                mAppLifecycleFacade.getRunningReactContext());
     }
 
     protected void launchOrResumeApp() {
