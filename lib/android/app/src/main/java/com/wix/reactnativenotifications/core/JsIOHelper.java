@@ -9,7 +9,8 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 public class JsIOHelper {
     public boolean sendEventToJS(String eventName, Bundle data, ReactContext reactContext) {
-        if (reactContext != null) {
+        boolean hasCatalystInstance = reactContext.hasActiveCatalystInstance();
+        if (hasCatalystInstance) {
             sendEventToJS(eventName, Arguments.fromBundle(data), reactContext);
             return true;
         }
@@ -17,7 +18,8 @@ public class JsIOHelper {
     }
 
     public boolean sendEventToJS(String eventName, WritableMap data, ReactContext reactContext) {
-        if (reactContext != null) {
+        boolean hasCatalystInstance = reactContext.hasActiveCatalystInstance();
+        if (hasCatalystInstance) {
             reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(eventName, data);
             return true;
         }
