@@ -244,21 +244,39 @@ public class PushNotification implements IPushNotification {
     }
 
     private void notifyReceivedToJS() {
+        final ReactContext reactContext = mAppLifecycleFacade.getRunningReactContext();
+
+        if (reactContext == null) {
+            return;
+        }
+
         mJsIOHelper.sendEventToJS(NOTIFICATION_RECEIVED_EVENT_NAME, mNotificationProps.asBundle(),
-                mAppLifecycleFacade.getRunningReactContext());
+                reactContext);
     }
 
     private void notifyReceivedBackgroundToJS() {
+        final ReactContext reactContext = mAppLifecycleFacade.getRunningReactContext();
+
+        if (reactContext == null) {
+            return;
+        }
+
         mJsIOHelper.sendEventToJS(NOTIFICATION_RECEIVED_BACKGROUND_EVENT_NAME, mNotificationProps.asBundle(),
-                mAppLifecycleFacade.getRunningReactContext());
+                reactContext);
     }
 
     private void notifyOpenedToJS() {
         Bundle response = new Bundle();
         response.putBundle("notification", mNotificationProps.asBundle());
 
+        final ReactContext reactContext = mAppLifecycleFacade.getRunningReactContext();
+
+        if (reactContext == null) {
+            return;
+        }
+
         mJsIOHelper.sendEventToJS(NOTIFICATION_OPENED_EVENT_NAME, response,
-                mAppLifecycleFacade.getRunningReactContext());
+            reactContext);
     }
 
     protected void launchOrResumeApp() {
