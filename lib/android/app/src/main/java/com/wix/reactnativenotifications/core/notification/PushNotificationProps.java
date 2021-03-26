@@ -22,8 +22,8 @@ public class PushNotificationProps {
         return (Bundle) mBundle.clone();
     }
 
-    public boolean isFirebaseBackgroundPayload() {
-        return mBundle.containsKey("google.message_id");
+    public boolean isFirebaseOrCleverTapBackgroundPayload() {
+        return mBundle.containsKey("google.message_id") || mBundle.containsKey("wzrk_id");
     }
 
     @Override

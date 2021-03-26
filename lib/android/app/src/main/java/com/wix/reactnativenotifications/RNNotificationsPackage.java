@@ -76,7 +76,7 @@ public class RNNotificationsPackage implements ReactPackage, AppLifecycleFacade.
         Bundle bundle = activity.getIntent().getExtras();
         if (bundle != null) {
             PushNotificationProps props = new PushNotificationProps(bundle);
-            if (props.isFirebaseBackgroundPayload()) {
+            if (props.isFirebaseOrCleverTapBackgroundPayload()) {
                 InitialNotificationHolder.getInstance().set(props);
             }
         }
